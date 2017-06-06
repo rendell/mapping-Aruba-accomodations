@@ -1,26 +1,47 @@
-library("ggmap") 
+library(ggmap) 
+library(hexbin)
 
-accomodation <- read.csv("accomodation_complete.csv")
+accomodation <- read.csv("map-altacc.csv")
+hotel <- read.csv("hotels.csv")
 accomodation$Longitude <- as.numeric(accomodation$Longitude)
+
+accomodation$Number.of.units <- as.numeric(accomodation$Number.of.units)
 
 # Aruba map
 aruba <- "aruba" 
-qmap(aruba, zoom=12, maptype="satellite", color="bw")
-qmap(aruba, zoom=12, maptype="roadmap", color="bw")
-qmap(aruba, zoom=12, maptype="hybrid", color="bw")
-qmap(aruba, zoom=12, source="stamen", maptype="toner")
-qmap(aruba, zoom=12, source="stamen", maptype="watercolor", color="bw")
+# qmap(aruba, zoom=12, maptype="satellite", color="bw")
+# qmap(aruba, zoom=12, maptype="roadmap", color="bw")
+# qmap(aruba, zoom=12, maptype="hybrid", color="bw")
+# qmap(aruba, zoom=12, source="stamen", maptype="toner")
+# qmap(aruba, zoom=12, source="stamen", maptype="watercolor", color="bw")
 
 Arubamap <- qmap(aruba, zoom=12, source="stamen", maptype="toner")
 
+Arubamap <- qmap(aruba, zoom=12, source="stamen", maptype="watercolor", color="bw")
+
+# Map: hotels and Others
+Arubamap + geom_point(aes(x = Latitude_C, y = Longitude_C), colour = "red", 
+                        alpha = 0.3, size = 3, data = accomodation, position=position_jitter(width=.003, height=.005)) + 
+        geom_point(aes(x = Latitude_C, y = Longitude_C), colour = "blue", 
+                        alpha = 0.5, size = 5, data = hotel)
+# Map: polygon
 Arubamap +
-qmplot(longitude, latitude, data = accomodation, colour = Property.type('red'), 
-       size = Property.type(3), darken = .3)          
-        
-        
-Arubamap + stat_density2d( aes(x = Longitude, y = Latitude, fill = Average.price.per.person.per.night, alpha = Average.price.per.person.per.night), 
-                             size = 2, bins = 4, data = accomodation, geom = "polygon" )
-overlay <- stat_density2d( aes(x = Longitude, y = Latitude, fill = Average.price.per.person.per.night, alpha = Average.price.per.person.per.night), 
-                           bins = 4, geom = "polygon", data = accomodation )
+        stat_density2d( aes(x = Latitude_C, y = Longitude_C, fill = ..level.., alpha = ..level..), 
+                        size = 2, bins = 20, data = accomodation, geom = "polygon" )
+
+#subset data
+subset_apartment <- accomodation[ which(accomodation$Property.type=='Apartment'), ]
+subset_timeshare <- accomodation[ which(accomodation$Property.type=='Timeshare'), ]
+
+# Map: Apartments and hotels
+Arubamap + geom_point(aes(x = Latitude_C, y = Longitude_C), colour = "red", 
+                        alpha = 0.3, size = 3, data = subset_apartment, position=position_jitter(width=.005, height=.005)) + 
+        geom_point(aes(x = Latitude_C, y = Longitude_C), colour = "blue", 
+                        alpha = 0.5, size = 7, data = subset_timeshare)
 
 
+# Map: hotels and Others (using heat)
+Arubamap +
+        geom_point(aes(x = Latitude_C, y = Longitude_C, colour= Average.price.per.person.per.night), data = accomodation,
+                        alpha = 0.7, size=2.8, position=position_jitter(width=.003, height=.006)) +
+        scale_color_gradient(low="yellow", high="black", limits=c(0,200))
